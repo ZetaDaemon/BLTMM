@@ -6,6 +6,8 @@ from typing import Any, Self
 
 import yaml
 
+FILE_ENCODING = "utf-8"
+
 
 class MultilineStr(str):
     """Custom string class that gets represented as a multiline string in yaml."""
@@ -36,7 +38,7 @@ class ModStatement(ABC):
     IDENTIFIER is to convert the yaml dictionary data into a statement.
     """
 
-    IDENTIFIER: QuotedStr = field(init=False)
+    IDENTIFIER: str = field(init=False, default="")
     data: str
 
     @classmethod
@@ -46,14 +48,14 @@ class ModStatement(ABC):
 
     def asdict(self) -> dict[str, Any]:
         """Convert into a dict."""
-        return {type(self).IDENTIFIER: self.data}
+        return {QuotedStr(type(self).IDENTIFIER): self.data}
 
 
 @dataclass
 class EnabledCommand(ModStatement):
     """Represents an enabled command."""
 
-    IDENTIFIER: QuotedStr = field(init=False, default=QuotedStr("enabled"))
+    IDENTIFIER: str = field(init=False, default="enabled")
 
     def asdict(self) -> dict[str, Any]:
         """Convert into a dict.
@@ -61,14 +63,14 @@ class EnabledCommand(ModStatement):
         MultilineStr is used so that the command is printed on
         its own in the yaml file for the sake of mod execution.
         """
-        return {EnabledCommand.IDENTIFIER: MultilineStr(self.data)}
+        return {QuotedStr(EnabledCommand.IDENTIFIER): MultilineStr(self.data)}
 
 
 @dataclass
 class DisabledCommand(ModStatement):
     """Represents a disabled command."""
 
-    IDENTIFIER: QuotedStr = field(init=False, default=QuotedStr("disabled"))
+    IDENTIFIER: str = field(init=False, default="disabled")
 
 
 class HotfixType(Enum):
@@ -180,7 +182,7 @@ class BlMod:
     @classmethod
     def from_file(cls, file_path: Path) -> Self:
         """Construct a BlMod from a file."""
-        with file_path.open("r") as mod_file:
+        with file_path.open("r", encoding=FILE_ENCODING) as mod_file:
             return cls.from_raw(yaml.safe_load(mod_file)["blmod"])
 
     def to_file(self, file_path: Path) -> None:
@@ -188,7 +190,7 @@ class BlMod:
         yaml.add_representer(MultilineStr, MultilineStr.representer)
         yaml.add_representer(QuotedStr, QuotedStr.representer)
 
-        with file_path.open("w") as file:
+        with file_path.open("w", encoding=FILE_ENCODING) as file:
             yaml.dump(
                 {QuotedStr("blmod"): self.asdict()},
                 file,

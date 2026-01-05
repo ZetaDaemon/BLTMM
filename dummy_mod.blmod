@@ -8,33 +8,33 @@
     - WL
     - BL53
   'data':
-    category: ''
+    'category': ''
     'locked': false
     'mut': false
     'statements':
-      - comment: this is my mod comment
+      - 'comment': this is my mod comment
       - 'enabled': |-
           set a b c
       - 'enabled': |-
           set d e f
       - 'disabled': set u v w
       - 'disabled': set x y z
-      - category: 'My cool category name: but with a colon in it'
+      - 'category': 'My cool category name: but with a colon in it'
         'locked': true
         'mut': true
         'statements':
           - 'enabled': |-
               set 1 2 3
           - 'disabled': set 4 5 6
-          - hotfix: set 11:22 33 44
+          - 'hotfix': set 11:22 33 44
             'type': LEVEL
             'package': azerty
-          - category: a nested category
+          - 'category': a nested category
             'locked': true
             'mut': true
             'statements':
               - 'enabled': |-
                   custom_command 123 456 789 101112
-      - hotfix: set 7 8 9
+      - 'hotfix': set 7 8 9
         'type': ONDEMAND
         'package': qwerty
