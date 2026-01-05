@@ -1,1 +1,2 @@
-# BLTMM
+# Borderlands Text Mod Manager
+A borderlands text mod manager written in python with a new file format based on the proposal by apple1417 [here](https://gist.github.com/apple1417/d2a77db2a40e326761764d3b9c2d43cb)
