@@ -1,5 +1,5 @@
 from abc import ABC
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Self
@@ -18,16 +18,15 @@ class MultilineStr(str):
         return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
 
 
-@dataclass
-class MetaData:
-    """Modfile metadata based on BLIMP tags.
+class QuotedStr(str):
+    """Custom string class that gets represented as a multiline string in yaml."""
 
-    https://github.com/apple1417/blcmm-parsing/tree/master/blimp
-    """
+    __slots__ = ()
 
-    title: str = ""
-    author: str = ""
-    version: str = ""
+    @staticmethod
+    def representer(dumper: yaml.Dumper, data: Any) -> yaml.ScalarNode:
+        """Represent the data using the quoted style."""
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="'")
 
 
 @dataclass
@@ -37,7 +36,7 @@ class ModStatement(ABC):
     IDENTIFIER is to convert the yaml dictionary data into a statement.
     """
 
-    IDENTIFIER: str = field(init=False, default="")
+    IDENTIFIER: QuotedStr = field(init=False)
     data: str
 
     @classmethod
@@ -54,7 +53,7 @@ class ModStatement(ABC):
 class EnabledCommand(ModStatement):
     """Represents an enabled command."""
 
-    IDENTIFIER: str = field(init=False, default="ENA")
+    IDENTIFIER: QuotedStr = field(init=False, default=QuotedStr("enabled"))
 
     def asdict(self) -> dict[str, Any]:
         """Convert into a dict.
@@ -69,7 +68,7 @@ class EnabledCommand(ModStatement):
 class DisabledCommand(ModStatement):
     """Represents a disabled command."""
 
-    IDENTIFIER: str = field(init=False, default="DIS")
+    IDENTIFIER: QuotedStr = field(init=False, default=QuotedStr("disabled"))
 
 
 class HotfixType(Enum):
@@ -83,7 +82,7 @@ class HotfixType(Enum):
 class Hotfix(ModStatement):
     """Represents a bl2/tps hotfix."""
 
-    IDENTIFIER: str = field(init=False, default="HOT")
+    IDENTIFIER: str = field(init=False, default="hotfix")
     hotfix_type: HotfixType = HotfixType.LEVEL
     package: str = ""
     disabled: bool = False
@@ -99,9 +98,13 @@ class Hotfix(ModStatement):
 
     def asdict(self) -> dict[str, Any]:
         """Convert into a dict."""
-        ret = {**super().asdict(), "type": self.hotfix_type.name, "package": self.package}
+        ret = {
+            **super().asdict(),
+            QuotedStr("type"): self.hotfix_type.name,
+            QuotedStr("package"): self.package,
+        }
         if self.disabled:
-            ret["disabled"] = self.disabled
+            ret[QuotedStr("disabled")] = self.disabled
         return ret
 
 
@@ -109,7 +112,7 @@ class Hotfix(ModStatement):
 class Comment(ModStatement):
     """Represents a comment."""
 
-    IDENTIFIER: str = field(init=False, default="COM")
+    IDENTIFIER: str = field(init=False, default="comment")
 
 
 @dataclass
@@ -120,7 +123,7 @@ class Category(ModStatement):
     Categories can also be mutually exclusive so only one of the inner options can be selected.
     """
 
-    IDENTIFIER: str = field(init=False, default="CAT")
+    IDENTIFIER: str = field(init=False, default="category")
     locked: bool = False
     mut: bool = False
     statements: list[ModStatement] = field(default_factory=list)
@@ -138,14 +141,14 @@ class Category(ModStatement):
         """Convert into a dict."""
         return {
             **super().asdict(),
-            "locked": self.locked,
-            "mut": self.mut,
-            "statements": [statement.asdict() for statement in self.statements],
+            QuotedStr("locked"): self.locked,
+            QuotedStr("mut"): self.mut,
+            QuotedStr("statements"): [statement.asdict() for statement in self.statements],
         }
 
 
 @dataclass
-class BlMod(ModStatement):
+class BlMod:
     """Represents a borderlands text mod.
 
     Effectively an expanded category, but is simpler to define as it's own seperate class.
@@ -153,34 +156,25 @@ class BlMod(ModStatement):
     contain inner BlMods.
     """
 
-    IDENTIFIER: str = field(init=False, default="MOD")
-    metadata: MetaData
-    games: list[str]
-    locked: bool = False
-    mut: bool = False
-    statements: list[ModStatement] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    games: list[str] = field(default_factory=list)
+    data: Category = field(default_factory=Category)
 
     @classmethod
     def from_raw(cls, raw_data: dict[str, Any]) -> Self:
         """Initialise a BlMod instance from the raw dictionary data."""
-        data = raw_data.get(cls.IDENTIFIER, "")
-        locked = raw_data.get("locked", False)
-        mut = raw_data.get("mut", False)
-        meta_data = MetaData(**raw_data.get("metadata", {}))
+        meta_data = raw_data.get("metadata", {})
         games = raw_data.get("games", [])
-        statements = _raw_data_to_statements(raw_data.get("statements", []))
+        data = Category.from_raw(raw_data.get("data", {}))
 
-        return cls(data, meta_data, games, locked, mut, statements)
+        return cls(meta_data, games, data)
 
     def asdict(self) -> dict[str, Any]:
         """Convert into a dict."""
         return {
-            **super().asdict(),
-            "metadata": {k: v for k, v in asdict(self.metadata).items() if v != ""},
-            "games": self.games,
-            "locked": self.locked,
-            "mut": self.mut,
-            "statements": [statement.asdict() for statement in self.statements],
+            QuotedStr("metadata"): {QuotedStr(k): v for k, v in self.metadata.items()},
+            QuotedStr("games"): self.games,
+            QuotedStr("data"): self.data.asdict(),
         }
 
     @classmethod
@@ -192,9 +186,15 @@ class BlMod(ModStatement):
     def to_file(self, file_path: Path) -> None:
         """Save a BlMod to a file."""
         yaml.add_representer(MultilineStr, MultilineStr.representer)
+        yaml.add_representer(QuotedStr, QuotedStr.representer)
 
         with file_path.open("w") as file:
-            yaml.dump({"blmod": self.asdict()}, file)
+            yaml.dump(
+                {QuotedStr("blmod"): self.asdict()},
+                file,
+                Dumper=IndentDumper,
+                sort_keys=False,
+            )
 
 
 def _raw_data_to_statements(raw_data: list[dict]) -> list[ModStatement]:
@@ -219,10 +219,15 @@ def _raw_data_to_statements(raw_data: list[dict]) -> list[ModStatement]:
         elif Category.IDENTIFIER in statement:
             new_statement = Category.from_raw(statement)
 
-        elif BlMod.IDENTIFIER in statement:
-            new_statement = BlMod.from_raw(statement)
-
         if new_statement is not None:
             statements.append(new_statement)
 
     return statements
+
+
+class IndentDumper(yaml.Dumper):
+    """Dumper to increase the indent with lists. Makes them prettier."""
+
+    def increase_indent(self, flow: bool = False, *_args: Any, **_kwargs: Any) -> None:  # noqa: FBT002
+        """increase_indent."""
+        return super().increase_indent(flow=flow, indentless=False)

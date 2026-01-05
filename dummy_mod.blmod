@@ -1,48 +1,40 @@
-blmod:
-  MOD: My Mod
-  games:
-  - BL2
-  - WL
-  - BL53
-  locked: false
-  metadata:
-    author: apple1417
-    title: My Mod
-  mut: false
-  statements:
-  - COM: this is my mod comment
-  - ENA: |-
-      set a b c
-  - ENA: |-
-      set d e f
-  - DIS: set u v w
-  - DIS: set x y z
-  - CAT: 'My cool category name: but with a colon in it'
-    locked: true
-    mut: true
-    statements:
-    - ENA: |-
-        set 1 2 3
-    - DIS: set 4 5 6
-    - HOT: set 11:22 33 44
-      package: azerty
-      type: LEVEL
-    - CAT: a nested category
-      locked: true
-      mut: true
-      statements:
-      - ENA: |-
-          custom_command 123 456 789 101112
-  - HOT: set 7 8 9
-    package: qwerty
-    type: ONDEMAND
-  - MOD: 'Inner mod'
-    games:
+'blmod':
+  'metadata':
+    'author': apple1417
+    'title': My Mod
+    'license': custom license
+  'games':
     - BL2
-    locked: false
-    metadata:
-      author: some dev
-      title: Another Mod
-    mut: false
-    statements:
-    - COM: A comment in a nested mod
+    - WL
+    - BL53
+  'data':
+    category: ''
+    'locked': false
+    'mut': false
+    'statements':
+      - comment: this is my mod comment
+      - 'enabled': |-
+          set a b c
+      - 'enabled': |-
+          set d e f
+      - 'disabled': set u v w
+      - 'disabled': set x y z
+      - category: 'My cool category name: but with a colon in it'
+        'locked': true
+        'mut': true
+        'statements':
+          - 'enabled': |-
+              set 1 2 3
+          - 'disabled': set 4 5 6
+          - hotfix: set 11:22 33 44
+            'type': LEVEL
+            'package': azerty
+          - category: a nested category
+            'locked': true
+            'mut': true
+            'statements':
+              - 'enabled': |-
+                  custom_command 123 456 789 101112
+      - hotfix: set 7 8 9
+        'type': ONDEMAND
+        'package': qwerty
