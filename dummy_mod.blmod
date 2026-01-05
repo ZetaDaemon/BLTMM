@@ -1,0 +1,48 @@
+blmod:
+  MOD: My Mod
+  games:
+  - BL2
+  - WL
+  - BL53
+  locked: false
+  metadata:
+    author: apple1417
+    title: My Mod
+  mut: false
+  statements:
+  - COM: this is my mod comment
+  - ENA: |-
+      set a b c
+  - ENA: |-
+      set d e f
+  - DIS: set u v w
+  - DIS: set x y z
+  - CAT: 'My cool category name: but with a colon in it'
+    locked: true
+    mut: true
+    statements:
+    - ENA: |-
+        set 1 2 3
+    - DIS: set 4 5 6
+    - HOT: set 11:22 33 44
+      package: azerty
+      type: LEVEL
+    - CAT: a nested category
+      locked: true
+      mut: true
+      statements:
+      - ENA: |-
+          custom_command 123 456 789 101112
+  - HOT: set 7 8 9
+    package: qwerty
+    type: ONDEMAND
+  - MOD: 'Inner mod'
+    games:
+    - BL2
+    locked: false
+    metadata:
+      author: some dev
+      title: Another Mod
+    mut: false
+    statements:
+    - COM: A comment in a nested mod
